@@ -1,0 +1,21 @@
+#! /usr/bin/env nix-shell
+#! nix-shell -i bash --pure -p bash sshfs
+# shellcheck shell=bash
+
+################################################################################
+# A wrapper around sshfs that sets very useful options.
+set -e
+set -u
+
+################################################################################
+sshfs \
+  -o reconnect \
+  -o ServerAliveInterval=15 \
+  -o ServerAliveCountMax=3 \
+  -o ControlPath=none \
+  "$@"
+
+# Local Variables:
+#   mode: sh
+#   sh-shell: bash
+# End:
