@@ -1,15 +1,17 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i bash --pure -p bash sshfs
+#! nix-shell -i bash --pure --keep SSH_AUTH_SOCK -p sshfs openssh
 # shellcheck shell=bash
 
 ################################################################################
 # A wrapper around sshfs that sets very useful options.
 set -e
 set -u
+set -x
 
 ################################################################################
 sshfs \
   -o reconnect \
+  -o auto_unmount \
   -o ServerAliveInterval=15 \
   -o ServerAliveCountMax=3 \
   -o ControlPath=none \
