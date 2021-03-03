@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+################################################################################
+set -eu
+set -o pipefail
+
+################################################################################
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [options] host
+
+Connect to the given host via SSH and start x11vnc.
+
+  -p PORT Run x11vnc on PORT [$option_port]
+  -s NUM  Clip to screen number NUM [$option_screen_num]
+  -h      This message
+
+EOF
+}
+
+################################################################################
+option_host=
+option_port=59123
+option_display=:0
+option_screen_num=0
+
+################################################################################
+parse_command_line() {
+  while getopts "p:s:h" o; do
+    case "${o}" in
+    p)
+      option_port=$OPTARG
+      ;;
+
+    s)
+      option_screen_num=$OPTARG
+      ;;
+
+    h)
+      usage
+      exit
+      ;;
+
+    *)
+      exit 1
+      ;;
+    esac
+  done
+
+  shift $((OPTIND - 1))
+
+  if [ $# -ne 1 ]; then
+    echo >&2 "ERROR: please give exactly one remote host to connect to"
+    exit 1
+  fi
+
+  option_host=$1
+}
+
+################################################################################
+main() {
+  parse_command_line "$@"
+
+  local x11vnc_opts=("-display" "$option_display")
+  x11vnc_opts+=("-quiet" "-rfbport" "$option_port")
+
+  if [ -n "$option_screen_num" ]; then
+    x11vnc_opts+=("-clip" "xinerama${option_screen_num}")
+  fi
+
+  local ssh_opts=("-C" "-n")
+
+  ssh \
+    -o ServerAliveInterval=15 \
+    -o ServerAliveCountMax=3 \
+    -o ControlPath=none \
+    -L "${option_port}:localhost:${option_port}" \
+    "${ssh_opts[@]}" "$option_host" \
+    x11vnc "${x11vnc_opts[@]}"
+}
+
+################################################################################
+main "$@"
