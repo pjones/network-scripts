@@ -11,6 +11,7 @@ Usage: $(basename "$0") [options] host
 
 Connect to the given host via SSH and start x11vnc.
 
+  -b      Background the process after port forwarding
   -p PORT Run x11vnc on PORT [$option_port]
   -s NUM  Clip to screen number NUM [$option_screen_num]
   -h      This message
@@ -23,11 +24,16 @@ option_host=
 option_port=59123
 option_display=:0
 option_screen_num=0
+option_background=0
 
 ################################################################################
 parse_command_line() {
-  while getopts "p:s:h" o; do
+  while getopts "bp:s:h" o; do
     case "${o}" in
+    b)
+      option_background=1
+      ;;
+
     p)
       option_port=$OPTARG
       ;;
@@ -70,6 +76,10 @@ main() {
 
   local ssh_opts=("-C" "-n")
 
+  if [ "$option_background" -eq 1 ]; then
+    ssh_opts+=("-f" "-o" "ExitOnForwardFailure=yes")
+  fi
+
   ssh \
     -o ServerAliveInterval=15 \
     -o ServerAliveCountMax=3 \
@@ -77,6 +87,11 @@ main() {
     -L "${option_port}:localhost:${option_port}" \
     "${ssh_opts[@]}" "$option_host" \
     x11vnc "${x11vnc_opts[@]}"
+
+  if [ "$option_background" -eq 1 ]; then
+    # Let x11vnc get fully started:
+    sleep 2
+  fi
 }
 
 ################################################################################
