@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+################################################################################
+# A script that will output the password for an SSH key.  Useful as a
+# replacement for SSH_ASKPASS.
+set -eu
+set -o pipefail
+
+################################################################################
+export PASSWORD_STORE_DIR=${PASSWORD_STORE_DIR:-$HOME/.password-store}
+KEY_TO_ADD=${KEY_TO_ADD:-$(basename "$0" .sh)}
+entry="business/clients/south-carolina/ssh-keys/$KEY_TO_ADD"
+alt_entry="machines/hq.pmade.com/ssh-keys"
+
+################################################################################
+if [ -e "$PASSWORD_STORE_DIR/$entry.gpg" ]; then
+  pass show "$entry"
+elif [ -e "$PASSWORD_STORE_DIR/$alt_entry.gpg" ]; then
+  pass show "$alt_entry"
+else
+  exit 1
+fi
