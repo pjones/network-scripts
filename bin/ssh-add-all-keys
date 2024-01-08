@@ -7,6 +7,7 @@ set -o pipefail
 TOP=$(dirname "$0")
 key_dir=$HOME/keys/ssh
 host=$(hostname)
+added=0
 
 ################################################################################
 export SSH_ASKPASS=$TOP/ssh-passphrase
@@ -15,7 +16,13 @@ export SSH_ASKPASS_REQUIRE=force
 ################################################################################
 function load_ssh_key() {
   export KEY_TO_ADD=$1
-  ssh-add "$key_dir/$KEY_TO_ADD"
+
+  if [ -e "$key_dir/$KEY_TO_ADD" ]; then
+    ssh-add "$key_dir/$KEY_TO_ADD"
+    added=$((added + 1))
+  else
+    echo "Skipped missing identity: $key_dir/$KEY_TO_ADD"
+  fi
 }
 
 ################################################################################
@@ -26,22 +33,29 @@ function main() {
     scors.id_rsa
     deploy.id_ed25519
     webmaster.id_ed25519
+    "$host.id_ed25519"
   )
-
-  if [ -e "$key_dir/$host.id_ed25519" ]; then
-    keys+=("$host.id_ed25519")
-  fi
 
   for key in "${keys[@]}"; do
     load_ssh_key "$key"
   done
 
   if [ -n "${DISPLAY:-}" ]; then
-    notify-send \
-      -a ssh-agent \
-      -i stock_add \
-      "SSH Keys" \
-      "All ssh keys have been added to the agent."
+    if [ "$added" -gt 0 ]; then
+      notify-send \
+        -a ssh-agent \
+        -i stock_add \
+        "SSH Keys" \
+        "$added ssh keys have been added to the agent."
+    else
+      notify-send \
+        -a ssh-agent \
+        -i stock_dialog_error \
+        "SSH Keys" \
+        "No keys available to add to the agent."
+    fi
+  else
+    echo "$added ssh keys have been added to the agent"
   fi
 }
 
